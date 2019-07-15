@@ -30,35 +30,44 @@
 #### 二、知识储备
 
 1. **DNS协议及报文格式**
-这篇[文章](https://jocent.me/2017/06/18/dns-protocol-principle.html#_label2)对于DNS讲的还比较透彻，在此基础做一点摘要。
+
+   这篇[文章](https://jocent.me/2017/06/18/dns-protocol-principle.html#_label2)对于DNS讲的还比较透彻，在此基础做一点摘要。
+   
     + 域名层次结构
        ![域名层次](http://ww1.sinaimg.cn/large/6e4e7200ly1g4r8j4pn8xj20tm0ar74y.jpg)
    
     + 域名服务器
     ![域名服务器](http://ww1.sinaimg.cn/large/6e4e7200ly1g4r8nxtahtj20qt09zaap.jpg)
    另外还有一个本地域名服务器：当一个主机发出DNS查询请求的时候，这个查询请求首先就是发给本地域名服务器的。
+    
     + 域名解析过程
-    以查询`jocent.me`为例，其中10.74.36.90为主机IP，10.74.1.11为本地DNS服务器：<br/>
-    ①主机10.74.36.90先向本地域名服务器10.74.1.11进行递归查询
-    ②本地域名服务器采用迭代查询，向一个根域名服务器进行查询
-    ③根域名服务器告诉本地域名服务器，下一次应该查询的顶级域名服务器`dns.me`的IP地址
-    ④本地域名服务器向顶级域名服务器`dns.me`进行查询
-    ⑤顶级域名服务器me告诉本地域名服务器，下一步查询权限服务器`dns.jocent.me`的IP地址
-    ⑥本地域名服务器向权限服务器`dns.jocent.me`进行查询
-    ⑦权限服务器`dns.jocent.me`告诉本地域名服务器所查询的主机的IP地址
+    
+   以查询`jocent.me`为例，其中10.74.36.90为主机IP，10.74.1.11为本地DNS服务器：<br/>
+    ①主机10.74.36.90先向本地域名服务器10.74.1.11进行递归查询<br/>
+    ②本地域名服务器采用迭代查询，向一个根域名服务器进行查询<br/>
+    ③根域名服务器告诉本地域名服务器，下一次应该查询的顶级域名服务器`dns.me`的IP地址<br/>
+    ④本地域名服务器向顶级域名服务器`dns.me`进行查询<br/>
+    ⑤顶级域名服务器me告诉本地域名服务器，下一步查询权限服务器`dns.jocent.me`的IP地址<br/>
+ ⑥本地域名服务器向权限服务器`dns.jocent.me`进行查询<br/>
+    ⑦权限服务器`dns.jocent.me`告诉本地域名服务器所查询的主机的IP地址<br/>
     ⑧本地域名服务器最后把查询结果告诉 10.74.36.90<br/>
     其中有两个概念递归查询和迭代查询:
- **递归查询**：本机向本地域名服务器发出一次查询请求，就静待最终的结果。如果本地域名服务器无法解析，自己会以DNS客户机的身份向其它域名服务器查询，直到得到最终的IP地址告诉本机。
-    **迭代查询**：本地域名服务器向根域名服务器查询，根域名服务器告诉它下一步到哪里去查询，然后它再去查，每次它都是以客户机的身份去各个服务器查询。
+    **递归查询**：本机向本地域名服务器发出一次查询请求，就静待最终的结果。如果本地域名服务器无法解析，自己会以DNS客户机的身份向其它域名服务器查询，直到得到最终的IP地址告诉本机。<br/>
+     **迭代查询**：本地域名服务器向根域名服务器查询，根域名服务器告诉它下一步到哪里去查询，然后它再去查，每次它都是以客户机的身份去各个服务器查询。
+    
     + 报文格式
     ![DNS协议报文格式](http://ww1.sinaimg.cn/large/6e4e7200ly1g4r98y58kmj20ob0bc3z6.jpg)
+   
 2. <a id='ANY'> **DNS资源记录ANY类型**
-为什么在DDOS方法攻击的时候需要指定ANY类型参数，我们使用dig命令来看一下具体情况：
-![](http://ww1.sinaimg.cn/large/6e4e7200ly1g4sps2a7apj20tm0i1q8t.jpg)
-可以看到，DNS服务器返回了该服务器中所有关于`163.com`的资源记录，包括类型A，NS，MX，TXT，这样就使得响应数据包远远大于请求数据包。
-我们不妨再往深层次想一想，已知UDP数据包的最大长度是512字节，也就是说当DNS响应数据大于512字节的时候，数据只返回512字节，剩余的数据将被丢弃。为什么在这个地方DNS的响应数据可以返回大于2000字节的数据呢？可以去查看请求数据包中的Additional Records有一条OPT类型的资源记录，OPT类型是一种一个“伪 DNS记录类型”以支持 EDNS协议，其中`UDP Payload Size`字段可以指定DNS返回报文的最大长度。[这里](http://blog.hnxiezan.com/blog/post/1/)对EDNS有比较详细的解释。
+  为什么在DDOS方法攻击的时候需要指定ANY类型参数，我们使用dig命令来看一下具体情况：
+  ![](http://ww1.sinaimg.cn/large/6e4e7200ly1g4sps2a7apj20tm0i1q8t.jpg)
+  可以看到，DNS服务器返回了该服务器中所有关于`163.com`的资源记录，包括类型A，NS，MX，TXT，这样就使得响应数据包远远大于请求数据包。
+  我们不妨再往深层次想一想，已知UDP数据包的最大长度是512字节，也就是说当DNS响应数据大于512字节的时候，数据只返回512字节，剩余的数据将被丢弃。为什么在这个地方DNS的响应数据可以返回大于2000字节的数据呢？可以去查看请求数据包中的Additional Records有一条OPT类型的资源记录，OPT类型是一种一个“伪 DNS记录类型”以支持 EDNS协议，其中`UDP Payload Size`字段可以指定DNS返回报文的最大长度。[这里](http://blog.hnxiezan.com/blog/post/1/)对EDNS有比较详细的解释。
+
 3. **DNS攻击类型**
-[这里](https://securitytrails.com/blog/most-popular-types-dns-attacks)有对DNS的各种攻击类型的介绍。
+
+  [这里](https://securitytrails.com/blog/most-popular-types-dns-attacks)有对DNS的各种攻击类型的介绍。
+
 4. `dns.flags.opt`**常见的值**
   - dns.flags.opcode=0(只显示DNS常规查询消息，以及相应的DNS响应消息)
 
@@ -91,8 +100,9 @@
 
 ##### 1.子域名爆破攻击
 - 攻击原理
-  [链接](https://www.secpulse.com/archives/55823.html)
-
+  
+[链接](https://www.secpulse.com/archives/55823.html)
+  
 - 发现过程
   首先，用 Wireshark 打开 pcap 包，绘制 IO Graphs：
   ![](http://ww1.sinaimg.cn/large/6e4e7200ly1g4rdg2cpa3j211g0b1jun.jpg)
@@ -114,11 +124,13 @@
   使用tshark命令行进行筛选`tshark -r timeTop.pcap -T fields -e ip.src -e ip.dst | tr "\t" "\n" | sort | uniq -c | sort -nr > ipRank.txt`
   
   参数解释：
+  
   -r 指定目标文件
   
   -Y 指定过滤规则
   
   -T pdml|ps|text|fields|psml,设置解码结果输出的格式，包括text,ps,psml和pdml，默认为text
+  
   -e  如果-T fields选项指定，-e用来指定输出哪些字段
   
   ![](http://ww1.sinaimg.cn/large/6e4e7200ly1g4rfi2f16nj20p00gsjsm.jpg)
@@ -126,10 +138,11 @@
   ![](http://ww1.sinaimg.cn/large/6e4e7200ly1g4rlk5wk9bj211k09iaci.jpg)
   可以看到这个IP地址是一个DNS服务。
   再来查看第二个IP 144.202.64.226：
-    ![](http://ww1.sinaimg.cn/large/6e4e7200ly1g4rlqt02paj211i0e5n0s.jpg)
+  
+![](http://ww1.sinaimg.cn/large/6e4e7200ly1g4rlqt02paj211i0e5n0s.jpg)
   144.202.64.226 发起了大量针对`b0e.com.cn`域名的查询请求，且大部分相应结果均为 No such name，因此判断此类攻击为子域名爆破攻击。
   通过观察，可以发现，前 10 个请求并不是域名爆破攻击，去掉该 10 个请求后，第一类攻击共有 34184 个。
-
+  
 - 分析结果
 
 
