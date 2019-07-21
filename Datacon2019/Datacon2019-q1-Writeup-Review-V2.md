@@ -1,8 +1,8 @@
-### DataCon 方向一 DNS恶意流量检测 WriteUp Review-v2
+## DataCon 方向一 DNS恶意流量检测 WriteUp Review-v2
 
 > 这一轮流量分析主要是**分析**为主，以[这篇Writeup](https://github.com/shyoshyo/DataCon-9102-DNS)为参考，有关DNS的攻击类型、攻击手段和攻击特征，详见[DNS攻击流量分析识别-v1](https://github.com/caoyihuai2/LearingNotes/blob/master/Datacon2019/Datacon2019-q1-Writeup-Review.md)
 
-##### 0x00 系统环境
+#### 0x00 系统环境
 
 - Windows10 64bit；
 - wireshark 3.0.3 (v3.0.3-0-g6130b92b0ec6) ；
@@ -13,7 +13,7 @@
 
 ------
 
-##### 0x01 未授权的Dynamic Update
+#### 0x01 未授权的Dynamic Update
 
 **切入点：**粗略观察绝大部分DNS包的Opcode都是0（Standard Query），但是我们也可以分析Opcode不为零的。使用以下命令筛选：
 
@@ -34,7 +34,7 @@
 
 上述命令把这些攻击包的标号和类型(5) 输出到了DynamicDNS.csv
 
-##### 0x02 反射放大攻击
+#### 0x02 反射放大攻击
 
 **切入点：**我们接下来再看看除了A(1) 和AAAA(28) 这两个常见类型以外的DNS 请求。使用如下命令启动
 wireshark：
@@ -106,7 +106,7 @@ ip.src -e dns.qry.name | awk '{print $1",3"} > Reflect.csv`
 
 上述命令把这些攻击包的标号和类型(3) 输出到了Reflect.csv。
 
-##### 0x03 未授权的域传输攻击
+#### 0x03 未授权的域传输攻击
 
 继续浏览除了A(1) 和AAAA(28) 以外的DNS 请求，我们看到了未授权的DNS 域传送攻击。
 
@@ -124,7 +124,7 @@ ip.src -e dns.qry.name | awk '{print $1",3"} > Reflect.csv`
 
 上述命令把这些攻击包的标号和类型(4) 输出到了AXFR.csv。
 
-##### 0x04 DNSSec NSec 域名遍历
+#### 0x04 DNSSec NSec 域名遍历
 
 继续浏览除了A(1) 和AAAA(28) 以外的DNS 请求，可以看到DNSSec 域名遍历攻击：
 
@@ -152,7 +152,7 @@ ip.src -e dns.qry.name | awk '{print $1",3"} > Reflect.csv`
 == 0 and ip.src == 6.116.183.244' -T fields -e frame.number -e ip.dst | awk '{print
 $1",1"}' > DNSSec.csv`
 
-##### 0x05 Dos子域名遍历攻击
+#### 0x05 Dos子域名遍历攻击
 
 **切入点：**我们可以先统计一下DNS 查询到一个不存在的域名的次数及其请求发起人的IP，具体而言可以使用如下的命令：
 
@@ -202,9 +202,20 @@ domain) if(domain[i] != 2) print i, domain[i]}' > query_one_time_domain.csv`
 
 ------
 
-##### 0x06 分析思路总结
+#### 0x06 分析思路总结
 
-- 首先查看Opcode不为0，即非Standard Query的查询数据包 ---> 未授权的DNS Dynamic Update
-- 再查看类型不为A(1)和AAAA(28)，即IPV4和IPV6的查询数据包 ---> 反射放大攻击、未授权的域传输和DNSSec NSec 域名遍历
-- 最后可以统计一下返回No Such Name的响应数据包 ---> Dos子域名遍历
+- 首先查看Opcode不为0，即非Standard Query的查询数据包
+  - 特征字段：`dns.flags.opcode`
+    - `dns.flags.opcode != 0(Standard query)`
+      - `dns.flags.opcode == 5(Dynamic Update) `---> 未授权的DNS Dynamic Update
+- 再查看类型不为A(1)和AAAA(28)，即IPV4和IPV6的查询数据包
+  - 特征字段：`dns.qry.type`
+    - `dns.qry.type != 1(A) and 28(AAAA)`
+      - ``dns.qry.type == 255(* ALL)` ---> 反射放大攻击
+      - `dns.qry.type == 252(AXFR)` ---> 未授权的DNS域传输攻击
+      - `dns.qry.type == 43(DS) and 6(SOA)` ---> DNSSec 域名遍历攻击
+- 最后可以统计一下返回No Such Name的响应数据包
+  - 特征字段：`dns.flags.rcode`
+    - `dns.flags.rcode != 0(No Error)`
+      - `dns.flags.rcode == 3(No such name)` ---> DoS攻击
 
