@@ -12,6 +12,8 @@
 
 #### 网路安全
 
+- 小白成长计划：[笔记](https://github.com/caoyihuai2/LearingNotes/blob/master/Growth_for_Cyber_Security)
+
 - 渗透测试
     + 《渗透测试——完全初学者指南》：[笔记](https://github.com/caoyihuai2/LearingNotes/blob/master/Penetration_Testing/Penetration_Testing_A_Hands-On_Introduction_to_Hacking.md)
 
@@ -26,6 +28,11 @@
 - 操作系统
     + 《鸟哥的Linux私房菜》
     + 《深入理解计算机系统》
+
+#### 数据库
+
+- MySQL
+    + 《MySQL必知必会》：[笔记](https://github.com/caoyihuai2/LearingNotes/blob/master/Database/MySQL_Crash_Course.md)
 
 ##### 比赛Writeup
 
